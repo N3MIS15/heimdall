@@ -83,7 +83,7 @@ class Subject(object):
 
 
 	def extendClass(self, Class):
-		if re.match(self.Class, Class): # Input class is extended version of sought class, upgrade
+		if re.match(self.Class, Class): # Input class is less-extended version of sought class, upgrade
 			self.Class = Class
 		elif not re.match(Class, self.Class): # Input class is a not less extended version of sought class, diamond problem
 			raise ValueError("{0} cannot extend to {1}, diamond problem".format(Class, self.Class))
