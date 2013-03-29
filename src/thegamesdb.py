@@ -10,7 +10,74 @@ import xml.etree.ElementTree as ET
 import urllib
 from urllib import unquote_plus, quote_plus
 
+thegamesdb = PredicateBuilder("thegamesdb", "http://thegamesdb.net/#", [ "identifier", "platform" ])
+
 tgdb_image_base = "http://thegamesdb.net/banners/"
+
+
+class TranslatePlatform(tasks.SubjectTask):
+    demand = [
+        demands.required(game.platform)
+    ]
+
+    supply = [
+        supplies.emit(thegamesdb.platform)
+    ]
+
+    def require(self):
+        path = "http://thegamesdb.net/api/GetPlatformsList.php"
+        return resources.SimpleResource(path)
+
+    def run(self, resource):
+        root = ET.fromstring(resource)
+        gameRows = root.findall("Game")
+        for gameRow in gameRows:
+            element = gameRow.find('GameTitle')
+            gameTitle = element.text if (element != None and element.text != None) else ''
+            self.subject.emit(thegamesdb.platform, '')
+
+
+class GamePredicateObject(tasks.SubjectTask):
+    demand = [
+        demands.required(thegamesdb.identifier, tmdb_base + "movie/")
+    ]
+
+    supply = [
+        supplies.emit(dc.title),
+        supplies.emit(dc.description),
+        supplies.emit(owl.sameAs),
+        supplies.emit(foaf.homepage),
+        supplies.emit(foaf.thumbnail),
+        supplies.emit("fanart")
+    ]
+
+    def require(self):
+        uri = self.subject[dc.identifier]
+        ID = uri[len(tmdb_base + "movie/"):]
+
+        return [
+            resources.SimpleResource(tmdb_api_base + "/configuration?api_key=57983e31fb435df4df77afb854740ea9"),
+            resources.SimpleResource(tmdb_api_base + "movie/" + ID + "?api_key=57983e31fb435df4df77afb854740ea9")
+        ]
+
+    def run(self, configuration, resource):
+        c = json.loads(configuration)
+        movie = json.loads(resource)
+
+        self.subject.emit(dc.title, movie["original_title"])
+        self.subject.emit(dc.description, movie["overview"])
+        self.subject.emit(owl.sameAs, "http://www.imdb.com/title/" + movie["imdb_id"])
+        self.subject.emit(foaf.homepage, movie["homepage"])
+
+        images = c["images"]
+        image_base = images["base_url"]
+
+        for size in images["poster_sizes"]:
+            self.subject.emit(foaf.thumbnail, image_base + size + movie["poster_path"])
+
+        for size in images["backdrop_sizes"]:
+            self.subject.emit("fanart", image_base + size + movie["poster_path"])
+
 
 
 def downloadArtwork(url, folder, title):
@@ -66,36 +133,35 @@ class DownloadFanart(tasks.SubjectTask):
 class SearchGameCollector(tasks.SubjectTask):
     demand = [
         demands.required(dc.title),
-        demands.required("itemtype", "game"),
-        demands.required("platform")
+        demands.requiredClass("item.game"),
+        demands.required(game.platform)
     ]
 
     supply = [
-        supplies.emit("Filetypeboxfront"),
-        supplies.emit("Filetypefanart")
+        supplies.emit(dc.description)
+        #supplies.emit("Filetypeboxfront"),
+        #supplies.emit("Filetypefanart")
     ]
 
     def require(self):
         title = self.subject[dc.title]
-        platform = self.subject["platform"]
-        path = "http://thegamesdb.net/api/GetGame.php?name=%s&platform=%s" %(quote_plus(title), quote_plus(platform))
-        print path
-
+        platform = self.subject[game.platform]
+        path = "http://thegamesdb.net/api/GetGame.php?name=%s&platform=%s" % (quote_plus(title), quote_plus(platform))
         return resources.SimpleResource(path)
 
     def run(self, resource):
-        
         root = ET.fromstring(resource)
-
-        gameRows = root.findall('Game')
+        gameRows = root.findall("Game")
         for gameRow in gameRows:
-            gameTitle = self.readTextElement(gameRow, 'GameTitle')
-            #TODO name quessing
-            if(gameTitle == self.subject[dc.title]):
+            element = gameRow.find('GameTitle')
+            gameTitle = element.text if (element != None and element.text != None) else ''
+            
+            #TODO name guessing
+            if (gameTitle == self.subject[dc.title]):
                 gameid = self.readTextElement(gameRow, 'id')
-                print "found match: id = %s" %gameid
+                print "found match: id = %s" % gameid
                 self.subject.emit('gameid', gameid)
-                self.subject.emit('Description', self.readTextElement(gameRow, 'Overview'))
+                self.subject.emit(dc.description, self.readTextElement(gameRow, 'Overview'))
                 self.subject.emit('Genre', self.readTextElement(gameRow, 'Genres/genre'))
                 self.subject.emit('Players', self.readTextElement(gameRow, 'Players'))
                 self.subject.emit('Developer', self.readTextElement(gameRow, 'Developer'))
@@ -112,12 +178,4 @@ class SearchGameCollector(tasks.SubjectTask):
                 break
             
     
-    def readTextElement(self, parent, elementName):
-        element = parent.find(elementName)
-        if(element != None and element.text != None):
-            return element.text
-        else:
-            return ''
-        
-
 module = [ SearchGameCollector, DownloadBoxfront, DownloadFanart ]
