@@ -11,7 +11,7 @@ from urlparse import urlparse
 
 class ExtractStreamDetails(tasks.SubjectTask):
     demand = [
-        demands.required(dc.identifier, "^file://"),
+        demands.required(dc.identifier, "^(/|file://)"),
         demands.requiredClass("item", True)
     ]
 
@@ -24,7 +24,6 @@ class ExtractStreamDetails(tasks.SubjectTask):
 
     def run(self):
         uri = urlparse(self.subject[dc.identifier]).path
-        mime_type = self.subject[dc.format]
 
         if uri:
             media_info = MediaInfo.parse(uri)
