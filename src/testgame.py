@@ -6,9 +6,8 @@ from heimdall.threadpools import MainloopThreadPool
 
 import item
 import game_item
+import thegamesdb
 
-import json
-import time
 import urlparse
 import sys
 
@@ -18,7 +17,7 @@ logging.getLogger("heimdall").setLevel(logging.DEBUG)
 
 def main(uri):
     if uri == None:
-        uri = "file:///C:\\Users\\Garrett\\Desktop\\roms\\The Legend of Zelda - Links Awakening DX.gbc"
+        uri = "file:///E:\\Games\\Testsets\\Scraper tests\\The Legend of Zelda - Links Awakening DX.gbc"
 
     if urlparse.urlparse(uri).scheme == "":
         uri = urlparse.urlunparse(("file", "", uri, "", "", ""))
@@ -29,6 +28,7 @@ def main(uri):
     engine = Engine(pool)
     engine.registerModule(item.module)
     engine.registerModule(game_item.module)
+    engine.registerModule(thegamesdb.module)
 
     def c(error, subject):
         if error:

@@ -19,8 +19,7 @@ foaf = PredicateBuilder("foaf", "http://xmlns.com/foaf/spec/", [ "Agent", "Group
 
 # Uncertain
 media = PredicateBuilder("media", "http://purl.org/media#", [ "duration", "rating" ])
-video = PredicateBuilder("video", "http://purl.org/video#", [ ])
+video = PredicateBuilder("video", "http://purl.org/video#", [ "trailer" ])
 audio = PredicateBuilder("audio", "http://purl.org/audio#", [ ])
-game = PredicateBuilder("game", "http://purl.org/game#", [ "platform" ])
 
 upnp = PredicateBuilder("upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/", [ "artist", "album", "originalTrackNumber" ])

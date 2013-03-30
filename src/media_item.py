@@ -6,7 +6,7 @@ from heimdall.predicates import *
 
 from pymediainfo import MediaInfo
 
-import json
+#import json
 from urlparse import urlparse
 
 class ExtractStreamDetails(tasks.SubjectTask):
